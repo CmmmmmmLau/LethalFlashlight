@@ -20,7 +20,12 @@ public class RefWrapper<T>
 [HarmonyPatch(typeof(FlashlightItem))]
 internal class FlashlightItemPatch {
 
-    private static float[] DEFAULT_HELMET_LIGHT_INTENSITY = new float[2];
+    private static float[] DEFAULT_FLASHLIGHT_INTENSITY = new float[2]{486.8536f, 397.9603f};
+    private static float[] DEFAULT_FLASHLIGHT_SPOTANGLE = new float[2]{73f, 55.4f};
+    
+    private static float[] DEFAULT_HELMET_LIGHT_INTENSITY = new float[2]{486.8536f, 833.2255f};
+    private static float[] DEFAULT_HELMET_LIGHT_SPOTANGLE = new float[2]{73f, 55.4f};
+
     private static bool isFlicking = false;
 
     [HarmonyPatch("Start")]
@@ -28,9 +33,6 @@ internal class FlashlightItemPatch {
     static void flashlightTimerPatch(ref FlashlightItem __instance) {
         RefWrapper<FlashlightItem> instance = new RefWrapper<FlashlightItem>(__instance);
         __instance.StartCoroutine(FlashlightFlicker(instance));
-        if (DEFAULT_HELMET_LIGHT_INTENSITY[__instance.flashlightTypeID] == null) {
-            DEFAULT_HELMET_LIGHT_INTENSITY[__instance.flashlightTypeID] = __instance.playerHeldBy.helmetLight.intensity;
-        }
     }
     
     [HarmonyPatch("Update")]
@@ -59,12 +61,19 @@ internal class FlashlightItemPatch {
         Random.InitState(instanceRef.GetHashCode());
         Debug.Log("Initiated Random Seed: " + instanceRef.GetHashCode());
         while (true) {
-            float waitTime = Random.Range(120f - 30 * (instanceRef.flashlightTypeID + 1), 120f - 30 * instanceRef.flashlightTypeID);
+            if (instanceRef.IsOwner) {
+                Debug.Log("Owner Found!");
+            }
+            else {
+                Debug.Log("Owner Not Found!");
+            }
+            float waitTime = (instanceRef.flashlightTypeID + 1) * 60;
             Debug.Log("Waiting for Flicker! Type: " + instanceRef.flashlightTypeID + " | " + waitTime + "s");
             yield return new WaitForSeconds(waitTime);
             if (instanceRef.flashlightBulb.enabled || instanceRef.usingPlayerHelmetLight) {
-                float maxChance = instanceRef.flashlightTypeID == 0 ? Mathf.Lerp(0.1f, 0.0f, instanceRef.insertedBattery.charge / 0.7f) 
-                                                                        : Mathf.Lerp(0.1f, 0.0f, instanceRef.insertedBattery.charge / 0.9f);
+                float flickerChance = Random.Range(0.0f, 1.0f);
+                float flickerChanceThreshold = 0.5f;
+                
                 if (true) {
                     Debug.Log("Starting Flicker! Type: " + instanceRef.flashlightTypeID);
                     float defaultIntensity = instanceRef.usingPlayerHelmetLight? instanceRef.playerHeldBy.helmetLight.intensity : instanceRef.flashlightBulb.intensity;
