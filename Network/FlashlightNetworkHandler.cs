@@ -6,7 +6,7 @@ namespace LethalFlashlight.Network;
 
 public class FlashlightNetworkHandler : NetworkBehaviour{
     public static FlashlightNetworkHandler Instance { get; private set; }
-    public static event Action<NetworkObjectReference, float> IntensityChangedEvent;
+    public static event Action<NetworkObjectReference, float, float> IntensityChangedEvent;
 
     public override void OnNetworkSpawn() {
         IntensityChangedEvent = null;
@@ -22,17 +22,17 @@ public class FlashlightNetworkHandler : NetworkBehaviour{
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void IntensityEventServerRpc(NetworkObjectReference refObject, float newIntensity){
+    public void IntensityEventServerRpc(NetworkObjectReference refObject, float intensityMultiplier, float spotAngleMultiplier){
         Debug.Log("IntensityEventServerRpc Fired!");
-        IntensityEventClientRpc(refObject, newIntensity);
+        IntensityEventClientRpc(refObject, intensityMultiplier, spotAngleMultiplier);
     }
     
     [ClientRpc]
-    public void IntensityEventClientRpc(NetworkObjectReference refObject, float newIntensity){
+    public void IntensityEventClientRpc(NetworkObjectReference refObject, float intensityMultiplier, float spotAngleMultiplier){
         Debug.Log("IntensityEventClientRpc Fired!");
         Debug.Log("Object Reference: " + refObject.NetworkObjectId);
-        Debug.Log("New Intensity: " + newIntensity);
+        Debug.Log("New Intensity: " + intensityMultiplier);
         Debug.Log("IntensityChangedEvent: " + IntensityChangedEvent);
-        IntensityChangedEvent?.Invoke(refObject, newIntensity);
+        IntensityChangedEvent?.Invoke(refObject, intensityMultiplier, spotAngleMultiplier);
     }
 }
