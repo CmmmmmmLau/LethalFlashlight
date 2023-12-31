@@ -32,6 +32,7 @@ public class FlashlightNetworkHandler : NetworkBehaviour{
         Debug.Log("IntensityEventClientRpc Fired!");
         Debug.Log("Object Reference: " + refObject.NetworkObjectId);
         Debug.Log("New Intensity: " + newIntensity);
+        Debug.Log("IntensityChangedEvent: " + IntensityChangedEvent);
         IntensityChangedEvent?.Invoke(refObject, newIntensity);
     }
 }
