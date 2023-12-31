@@ -12,14 +12,19 @@ namespace LethalFlashlight
     public class Plugin : BaseUnityPlugin
     {
         public static AssetBundle MainAssetBundle;
+        public static Plugin Instance;
         
         private Harmony harmony = new Harmony(PluginInfo.PLUGIN_GUID);
-
+        
         
         private void Awake()
         {
             var stream  = Assembly.GetExecutingAssembly().GetManifestResourceStream("LethalFlashlight.Resources.flashlightasset");
             MainAssetBundle = AssetBundle.LoadFromStream(stream);
+
+            if (Instance == null) {
+                Instance = this;
+            }
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (var type in types) {
