@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using LethalFlashlight.Patches;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -26,13 +27,23 @@ public class FlashlightTimer : MonoBehaviour{
 
     public IEnumerator Timer() {
         while (true) {
-            yield return new WaitForSeconds(50f);
+            yield return new WaitForSeconds(Random.Range(45, 75));
 
             if (!this.parentFlashlight.flashlightBulb.enabled && !this.parentFlashlight.usingPlayerHelmetLight) continue;
-            if (true) {
+            if (this.parentFlashlight.playerHeldBy.insanityLevel > 30f) {
+                if (Random.Range(0f, 1f) < 0.3f) {
+                    if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40f) {
+                        this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
+                    }
+                }
                 this.StartCoroutine(Flicker());
+            } else if ((this.parentFlashlight.insertedBattery.charge <= FlashlightItemPatch.SPOTANGLE_THRESHOLD[flashlithyType])) {
+                if (Random.Range(0f, 1f) < 0.2f) {
+                    if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40f) {
+                        this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
+                    }
+                }
             }
-
         }
     }
 }
