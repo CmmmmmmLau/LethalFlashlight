@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using HarmonyLib;
+﻿using HarmonyLib;
 using LethalFlashlight.Network;
 using LethalFlashlight.Object;
 using Unity.Netcode;
@@ -17,15 +16,15 @@ public class FlashlightItemPatch {
     private static float[] INTENITY_THRESHOLD = new float[2]{0.4f, 0.6f};
     private static float[] INTENITY_MINIMUM = new float[2]{0.2f, 0.1f};
     
-    private static float[] SPOTANGLE_THRESHOLD = new float[2]{0.4f, 0.6f};
-    private static float[] SPOTANGLE_MINIMUM = new float[2]{0.8f, 0.6f};
+    public static float[] SPOTANGLE_THRESHOLD = new float[2]{0.4f, 0.6f};
+    public static float[] SPOTANGLE_MINIMUM = new float[2]{0.9f, 0.8f};
 
     [HarmonyPatch(typeof(FlashlightItem))]
     [HarmonyPatch("Start")]
     [HarmonyPostfix]
     static void TimerPather(FlashlightItem __instance) {
         FlashlightTimer timer = __instance.gameObject.GetComponent<FlashlightTimer>(); 
-        if (timer == null) {
+        if (timer != null) {
             timer = __instance.gameObject.AddComponent<FlashlightTimer>();
         }
     }
@@ -73,12 +72,10 @@ public class FlashlightItemPatch {
     
     static void SendEventToClients(NetworkObjectReference objectReference, float intensityMultiplier, float spotAngleMultiplier) {
         if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)) return;
-        Debug.Log("SendEventToClients Fired!");
         FlashlightNetworkHandler.Instance.IntensityEventClientRpc(objectReference, intensityMultiplier, spotAngleMultiplier);
     }
     
     static void ReceivedEventFromServer(NetworkObjectReference objectReference, float intensityMultiplier, float spotAngleMultiplier) {
-        Debug.Log("ReceivedEventFromServer Fired!");
         if (objectReference.TryGet(out NetworkObject networkObject)) {
             FlashlightItem flashlightItem = networkObject.gameObject.GetComponent<FlashlightItem>();
             int flashlightTypeID = flashlightItem.flashlightTypeID;
