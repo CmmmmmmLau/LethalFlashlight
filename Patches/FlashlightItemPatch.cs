@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using HarmonyLib;
 using LethalFlashlight.Network;
+using LethalFlashlight.Object;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -20,16 +21,32 @@ public class FlashlightItemPatch {
     private static float[] SPOTANGLE_MINIMUM = new float[2]{0.8f, 0.6f};
 
     [HarmonyPatch(typeof(FlashlightItem))]
+    [HarmonyPatch("Start")]
+    [HarmonyPostfix]
+    static void TimerPather(FlashlightItem __instance) {
+        FlashlightTimer timer = __instance.gameObject.GetComponent<FlashlightTimer>(); 
+        if (timer == null) {
+            timer = __instance.gameObject.AddComponent<FlashlightTimer>();
+        }
+    }
+    
+    [HarmonyPatch(typeof(FlashlightItem))]
     [HarmonyPatch("Update")]
     [HarmonyPostfix]
     static void FlashlightItemPatcher(FlashlightItem __instance) {
         if (!(__instance.flashlightBulb.enabled || __instance.usingPlayerHelmetLight)) return;
         int type = __instance.flashlightTypeID;
         float targetBattery = __instance.usingPlayerHelmetLight ? __instance.playerHeldBy.pocketedFlashlight.insertedBattery.charge: __instance.insertedBattery.charge;
+        
+        FlashlightTimer timer = __instance.gameObject.GetComponent<FlashlightTimer>();
 
         float batteryPercentage = Mathf.Lerp(0.0f, 1.0f, targetBattery);
         float intensityMultiplier = batteryPercentage > INTENITY_THRESHOLD[type] ? 1.0f : Mathf.Max(Mathf.Lerp(0.0f, 1.0f, batteryPercentage / INTENITY_THRESHOLD[type]), INTENITY_MINIMUM[type]);
         float spotAngleMultiplier = batteryPercentage > SPOTANGLE_THRESHOLD[type] ? 1.0f : Mathf.Max(Mathf.Lerp(0.0f, 1.0f, batteryPercentage / SPOTANGLE_THRESHOLD[type]), SPOTANGLE_MINIMUM[type]);
+
+        if (timer.isFlicking) {
+            intensityMultiplier = Random.Range(0.1f, 0.3f);
+        }
         
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
             FlashlightNetworkHandler.Instance.IntensityEventClientRpc(__instance.NetworkObject, intensityMultiplier, spotAngleMultiplier);
@@ -73,7 +90,6 @@ public class FlashlightItemPatch {
                 flashlightItem.flashlightBulb.intensity = DEFAULT_FLASHLIGHT_INTENSITY[flashlightTypeID] * intensityMultiplier;
                 flashlightItem.flashlightBulb.spotAngle = DEFAULT_FLASHLIGHT_SPOTANGLE[flashlightTypeID] * spotAngleMultiplier;
             }
-            Debug.Log("Intensity Changed! " + intensityMultiplier);
         }
     }
 }
