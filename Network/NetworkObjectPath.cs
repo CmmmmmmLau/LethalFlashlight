@@ -26,7 +26,7 @@ public class NetworkObjectPath {
     [HarmonyPostfix]
     public static void SpawnNetworkPrefab() {
         if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) {
-            var networkHandler = Object.Instantiate(networkPrefab, Vector3.zero, Quaternion.identity);
+            var networkHandler = UnityEngine.Object.Instantiate(networkPrefab, Vector3.zero, Quaternion.identity);
             networkHandler.GetComponent<NetworkObject>().Spawn();
         }
     }
