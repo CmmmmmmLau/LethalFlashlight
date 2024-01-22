@@ -45,16 +45,4 @@
     </Reference>
   </ItemGroup>
   
-  <ItemGroup>
-    <Compile Remove="Asset\**" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <EmbeddedResource Remove="Asset\**" />
-    <None Remove="Assets\flashlightasset" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <None Remove="Asset\**" />
-  </ItemGroup>
 </Project>
