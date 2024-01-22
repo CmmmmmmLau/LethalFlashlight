@@ -4,6 +4,7 @@ using GameNetcodeStuff;
 using LethalFlashlight.Patches;
 using Unity.Netcode;
 using UnityEngine;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace LethalFlashlight.Components;
@@ -34,20 +35,25 @@ public class FlashlightRework : NetworkBehaviour{
 
             if (!this.parentFlashlight.IsOwner) {
                 targetBattery.charge -= Time.deltaTime / this.parentFlashlight.itemProperties.batteryUsage;
+                if (targetBattery.charge <= 0) {
+                    this.StartCoroutine(Closing());
+                }
             } else {
                 this.timer += Time.deltaTime;
                 if (this.timer > this.targetTimer) {
-                    if (this.parentFlashlight.playerHeldBy.insanityLevel > 30f) {
-                        if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE_INSANITY) {
-                            if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40) {
-                                this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
-                            }
-                            this.StartCoroutine(SyncFlicking());
-                        }
-                    } else {
-                        if (targetBattery.charge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
-                            if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE) {
+                    if ((Object) this.parentFlashlight.playerHeldBy != (Object) null) {
+                        if (this.parentFlashlight.playerHeldBy.insanityLevel > 30f) {
+                            if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE_INSANITY) {
+                                if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40) {
+                                    this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
+                                }
                                 this.StartCoroutine(SyncFlicking());
+                            }
+                        } else {
+                            if (targetBattery.charge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
+                                if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE) {
+                                    this.StartCoroutine(SyncFlicking());
+                                }
                             }
                         }
                     }
@@ -71,7 +77,9 @@ public class FlashlightRework : NetworkBehaviour{
                 }
             }
             else {
-                this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
+                if (targetBattery.charge > 0) {
+                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
+                } 
             }
         }
     }
@@ -86,6 +94,11 @@ public class FlashlightRework : NetworkBehaviour{
             Plugin.FLASHLIGHT_SPOTANGLE[type] * multiplier < Plugin.FLASHLIGHT_SPOTANGLE_MIN[type]
                 ? Plugin.FLASHLIGHT_SPOTANGLE_MIN[type]
                 : Plugin.FLASHLIGHT_SPOTANGLE[type] * multiplier;
+    }
+    
+    private IEnumerator Closing() {
+        yield return new WaitForSeconds(0.1f);
+        this.parentFlashlight.SwitchFlashlight(false);
     }
     
     public IEnumerator SyncFlicking() {
