@@ -1,45 +1,38 @@
 ﻿using System;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Logging;
 using HarmonyLib;
-using LethalFlashlight.Network;
+using LethalFlashlight.Components;
 using LethalFlashlight.Patches;
+using LethalFlashlight.Scripts;
+using RuntimeNetcodeRPCValidator;
 using UnityEngine;
 
 namespace LethalFlashlight
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]
+    [BepInDependency("Chaos.Diversity", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
-        public static AssetBundle MainAssetBundle;
         public static Plugin Instance;
+        public static ManualLogSource mls;
+        
         
         private Harmony harmony = new Harmony(PluginInfo.PLUGIN_GUID);
-        
+        private NetcodeValidator netcodeValidator;
         
         private void Awake()
         {
-            var stream  = Assembly.GetExecutingAssembly().GetManifestResourceStream("LethalFlashlight.Resources.flashlightasset");
-            MainAssetBundle = AssetBundle.LoadFromStream(stream);
-
-            if (Instance == null) {
-                Instance = this;
-            }
+            mls = this.Logger;
             
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (var type in types) {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods) {
-                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                    if (attributes.Length > 0) {
-                        method.Invoke(null, null);
-                    }
-                }
-            }
-
-            harmony.PatchAll(typeof(FlashlightNetworkHandler));
             harmony.PatchAll(typeof(FlashlightItemPatch));
-            harmony.PatchAll(typeof(NetworkObjectPath));    
+
+            netcodeValidator = new NetcodeValidator(PluginInfo.PLUGIN_GUID);
+            netcodeValidator.PatchAll();
+            
+            netcodeValidator.BindToPreExistingObjectByBehaviour<FlashlightFlicker, FlashlightItem>();
             
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
