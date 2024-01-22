@@ -68,12 +68,12 @@ public class FlashlightRework : NetworkBehaviour{
                 if (!this.parentFlashlight.IsOwner || this.parentFlashlight.usingPlayerHelmetLight) {
                     this.LightTweaker(this.parentFlashlight.playerHeldBy.helmetLight, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
                 } else {
-                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
+                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 }
             }
             else {
                 if (targetBattery.charge > 0) {
-                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
+                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 } 
             }
         } else {
@@ -100,7 +100,7 @@ public class FlashlightRework : NetworkBehaviour{
     public IEnumerator SyncFlicking() {
         yield return new WaitUntil(() => NetworkObject.IsSpawned);
         this.UpdateStateServerRpc(true);
-        yield return new WaitForSeconds(Random.Range(1f, 3));
+        yield return new WaitForSeconds(Random.Range(1f, 3f));
         this.UpdateStateServerRpc(false);    
     }
     
