@@ -2,7 +2,6 @@
 using System.Collections;
 using GameNetcodeStuff;
 using LethalFlashlight.Patches;
-using LethalFlashlight.Scripts;
 using Unity.Netcode;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -10,18 +9,7 @@ using Random = UnityEngine.Random;
 namespace LethalFlashlight.Components;
 
 public class FlashlightRework : NetworkBehaviour{
-    private static float[] DEFAULT_FLASHLIGHT_INTENSITY = new float[2]{486.8536f, 397.9603f};
-    private static float[] DEFAULT_FLASHLIGHT_SPOTANGLE = new float[2]{73f, 55.4f};
-    
-    private static float[] DEFAULT_HELMET_LIGHT_INTENSITY = new float[2]{486.8536f, 833.2255f};
-    private static float[] DEFAULT_HELMET_LIGHT_SPOTANGLE = new float[2]{73f, 55.4f};
-    
-    private static float[] INTENITY_THRESHOLD = new float[2]{0.4f, 0.6f};
-    private static float[] INTENITY_MINIMUM = new float[2]{0.2f, 0.1f};
-    
-    public static float[] SPOTANGLE_THRESHOLD = new float[2]{0.4f, 0.6f};
-    public static float[] SPOTANGLE_MINIMUM = new float[2]{0.9f, 0.8f};
-    
+
     private FlashlightItem parentFlashlight;
     private int type;
     public bool flag;
@@ -29,23 +17,12 @@ public class FlashlightRework : NetworkBehaviour{
     private float targetTimer;
     private float timer;
     
-
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        base.OnNetworkDespawn();
-    }
-    
     private void Start() {
         this.parentFlashlight = this.gameObject.GetComponent<FlashlightItem>();
         this.type = this.parentFlashlight.flashlightTypeID;
         this.flag = false;
 
-        this.targetTimer = 10;
+        this.targetTimer = Plugin.FLICKER_INTERVAL;
         this.timer = 0;
     }
 
@@ -60,37 +37,73 @@ public class FlashlightRework : NetworkBehaviour{
             } else {
                 this.timer += Time.deltaTime;
                 if (this.timer > this.targetTimer) {
+                    if (this.parentFlashlight.playerHeldBy.insanityLevel > 30f) {
+                        if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE_INSANITY) {
+                            if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40) {
+                                this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
+                            }
+                            this.StartCoroutine(SyncFlicking());
+                        }
+                    } else {
+                        if (targetBattery.charge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
+                            if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE) {
+                                this.StartCoroutine(SyncFlicking());
+                            }
+                        }
+                    }
                     this.timer = 0;
-                    this.StartCoroutine(Flicker());
                 }
             }
             
-            float batteryPercentage = Mathf.Lerp(0.0f, 1.0f, targetBattery.charge);
-            float intensityMultiplier = batteryPercentage > INTENITY_THRESHOLD[type] ? 1.0f : Mathf.Max(Mathf.Lerp(0.0f, 1.0f, batteryPercentage / INTENITY_THRESHOLD[type]), INTENITY_MINIMUM[type]);
+            float batteryPercentage = targetBattery.charge > 1 ? 1: Mathf.Lerp(0.0f, 1.0f, targetBattery.charge);
+            float multiplier = batteryPercentage > Plugin.FLASHLIGHT_THRESHOLD[type] ? 1.0f : Mathf.Max(Mathf.Lerp(0.0f, 1.0f, batteryPercentage / Plugin.FLASHLIGHT_THRESHOLD[type]), Plugin.FLASHLIGHT_INTENSITY_MIN[type]);
 
-
-
+            
             if (this.flag) {
-                intensityMultiplier = Random.Range(0.1f, 0.2f);
+                multiplier = Random.Range(0.1f, 0.3f);
             }
             
             if (this.parentFlashlight.isHeld) {
                 if (!this.parentFlashlight.IsOwner || this.parentFlashlight.usingPlayerHelmetLight) {
-                    this.parentFlashlight.playerHeldBy.helmetLight.intensity = DEFAULT_HELMET_LIGHT_INTENSITY[type] * intensityMultiplier;
+                    this.LightTweaker(this.parentFlashlight.playerHeldBy.helmetLight, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
                 } else {
-                    this.parentFlashlight.flashlightBulb.intensity = DEFAULT_FLASHLIGHT_INTENSITY[type] * intensityMultiplier;
+                    this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
                 }
             }
             else {
-                this.parentFlashlight.flashlightBulb.intensity = DEFAULT_FLASHLIGHT_INTENSITY[type] * intensityMultiplier;
+                this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY_HELMET[type], multiplier);
             }
         }
     }
     
-    public IEnumerator Flicker() {
+    private void LightTweaker(Light light, float intensity, float multiplier) {
+        light.intensity = intensity * multiplier;
+        light.range =
+            Plugin.FLASHLIGHT_RANGE[type] * multiplier < Plugin.FLASHLIGHT_RANGE_MIN[type]
+                ? Plugin.FLASHLIGHT_RANGE_MIN[type]
+                : Plugin.FLASHLIGHT_RANGE[type] * multiplier;
+        light.spotAngle = 
+            Plugin.FLASHLIGHT_SPOTANGLE[type] * multiplier < Plugin.FLASHLIGHT_SPOTANGLE_MIN[type]
+                ? Plugin.FLASHLIGHT_SPOTANGLE_MIN[type]
+                : Plugin.FLASHLIGHT_SPOTANGLE[type] * multiplier;
+    }
+    
+    public IEnumerator SyncFlicking() {
         yield return new WaitUntil(() => NetworkObject.IsSpawned);
-        this.parentFlashlight.gameObject.GetComponent<FlashlightFlicker>().UpdateStateServerRpc(true);
+        this.UpdateStateServerRpc(true);
         yield return new WaitForSeconds(Random.Range(1f, 3));
-        this.parentFlashlight.gameObject.GetComponent<FlashlightFlicker>().UpdateStateServerRpc(false);    
-    } 
+        this.UpdateStateServerRpc(false);    
+    }
+    
+    [ServerRpc(RequireOwnership = true)]
+    public void UpdateStateServerRpc(bool state) {
+        Plugin.mls.LogInfo("Server RPC: syncing flicker");
+        this.UpdateStateClientRpc(state);
+    }
+
+    [ClientRpc]
+    private void UpdateStateClientRpc(bool state) {
+        Plugin.mls.LogInfo("Client RPC: Received new flicker state");
+        this.flag = state;
+    }
 }

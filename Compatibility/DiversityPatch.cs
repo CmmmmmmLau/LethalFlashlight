@@ -1,9 +1,9 @@
 ﻿using Diversity.Items;
 using UnityEngine;
 
-namespace LethalFlashlight.Scripts;
+namespace LethalFlashlight.Compatibility;
 
-public class CompatibilityPatch {
+public class DiversityPatch {
     public static void RemoveComponent(FlashlightItem item) {
         if (!item.gameObject.TryGetComponent(out FlashlightRevamp remove)) return;
         Object.Destroy(remove);

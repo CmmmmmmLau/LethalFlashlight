@@ -52,7 +52,6 @@
   <ItemGroup>
     <EmbeddedResource Remove="Asset\**" />
     <None Remove="Assets\flashlightasset" />
-    <EmbeddedResource Include="Resources\flashlightasset" />
   </ItemGroup>
   
   <ItemGroup>
