@@ -14,6 +14,7 @@ namespace LethalFlashlight
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     [BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]
     [BepInDependency("Chaos.Diversity", BepInDependency.DependencyFlags.SoftDependency)]
+    
     public class Plugin : BaseUnityPlugin
     {
         public static Plugin Instance;
@@ -75,7 +76,7 @@ namespace LethalFlashlight
             this.prolightIntensityHelmetConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Intensity Helmet", 486.8536f, "The default intensity of the ProFlashlight when used as a helmet light");
             this.prolightIntensityMinConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Threshold Min", 0.2f, "The minimum threshold of the ProFlashlight");
             this.prolightRangeConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Range", 55f, "The default range of the ProFlashlight");
-            this.prolightRangeMinConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Range Min", 30f, "The minimum range of the ProFlashlight");
+            this.prolightRangeMinConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Range Min", 25f, "The minimum range of the ProFlashlight");
             this.prolightSpotAngleConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Spot Angle", 73f, "The default spot angle of the ProFlashlight");
             this.prolightSpotAngleMinConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Spot Angle Min", 50f, "The minimum spot angle of the ProFlashlight");
             this.prolightThresholdConfig = Config.Bind<float>("ProFlashlight Tweak", "ProFlashlight Threshold", 0.5f, "The percentage of the ProFlashlight start losing power");
