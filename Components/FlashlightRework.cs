@@ -27,7 +27,9 @@ public class FlashlightRework : NetworkBehaviour{
         this.timer = 0;
     }
 
-    private void Update() {
+    public void IntensityUpdate() {
+        if ((Object) this.parentFlashlight == (Object) null) return;
+        
         if (this.parentFlashlight.isBeingUsed) {
             Battery targetBattery = this.parentFlashlight.usingPlayerHelmetLight
                 ? this.parentFlashlight.playerHeldBy.pocketedFlashlight.insertedBattery
@@ -35,20 +37,30 @@ public class FlashlightRework : NetworkBehaviour{
 
             if (!this.parentFlashlight.IsOwner) {
                 targetBattery.charge -= Time.deltaTime / this.parentFlashlight.itemProperties.batteryUsage;
+                if (targetBattery.charge < 0) {
+                    return;
+                }
             } else {
                 this.timer += Time.deltaTime;
                 if (this.timer > this.targetTimer) {
+                    Plugin.mls.LogInfo("Flicker timer reached, Checking...");
                     if (((Object) this.parentFlashlight.playerHeldBy != (Object) null) && this.parentFlashlight.playerHeldBy.insanityLevel > 30f) {
                         if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE_INSANITY) {
+                            Plugin.mls.LogInfo("Flicker chance reached, Flickering...");
                             if (this.parentFlashlight.playerHeldBy.insanityLevel >= 40) {
                                 this.parentFlashlight.flashlightAudio.PlayOneShot(this.parentFlashlight.flashlightFlicker);
                             }
                             this.StartCoroutine(SyncFlicking());
+                        } else {
+                          Plugin.mls.LogInfo("Flicker chance not reached, Skipping...");  
                         }
                     } else {
                         if (targetBattery.charge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
                             if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE) {
+                                Plugin.mls.LogInfo("Flicker chance reached, Flickering...");
                                 this.StartCoroutine(SyncFlicking());
+                            } else {
+                                Plugin.mls.LogInfo("Flicker chance not reached, Skipping...");  
                             }
                         }
                     }
@@ -61,7 +73,7 @@ public class FlashlightRework : NetworkBehaviour{
 
             
             if (this.flag) {
-                multiplier = Random.Range(0.1f, 0.3f);
+                multiplier = Random.Range(0.2f, 0.6f);
             }
             
             if (this.parentFlashlight.isHeld) {
@@ -70,17 +82,10 @@ public class FlashlightRework : NetworkBehaviour{
                 } else {
                     this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 }
-            }
-            else {
+            } else {
                 if (targetBattery.charge > 0) {
                     this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 } 
-            }
-        } else {
-            if (!this.parentFlashlight.isHeld) {
-                if (this.parentFlashlight.insertedBattery.charge <= 0) {
-                    this.parentFlashlight.SwitchFlashlight(false);
-                }
             }
         }
     }
@@ -104,7 +109,7 @@ public class FlashlightRework : NetworkBehaviour{
         this.UpdateStateServerRpc(false);    
     }
     
-    [ServerRpc(RequireOwnership = true)]
+    [ServerRpc(RequireOwnership = false)]
     public void UpdateStateServerRpc(bool state) {
         Plugin.mls.LogInfo("Server RPC: syncing flicker");
         this.UpdateStateClientRpc(state);

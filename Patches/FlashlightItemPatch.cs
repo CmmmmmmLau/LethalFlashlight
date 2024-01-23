@@ -6,16 +6,25 @@ using UnityEngine;
 
 namespace LethalFlashlight.Patches;
 
+[HarmonyPatch(typeof(FlashlightItem))]
 public class FlashlightItemPatch {
 
-    [HarmonyPatch(typeof(FlashlightItem))]
     [HarmonyPatch("Start")]
     [HarmonyPostfix]
     [HarmonyAfter("Chaos.Diversity")]
-    static void TimerPather(FlashlightItem __instance) {
+    private static void TimerPather(FlashlightItem __instance) {
         if (Chainloader.PluginInfos.ContainsKey("Chaos.Diversity")) {
             Plugin.mls.LogInfo("Plugin Diversity detected");
             DiversityPatch.RemoveComponent(__instance);
+        }
+    }
+    
+    [HarmonyPatch("Update")]
+    [HarmonyPostfix]
+    private static void UpdatePather(FlashlightItem __instance) {
+        FlashlightRework component = __instance.gameObject.GetComponent<FlashlightRework>();
+        if ((Object)component != (Object)null) {
+            component.IntensityUpdate();
         }
     }
 }
