@@ -10,16 +10,19 @@ using Random = UnityEngine.Random;
 namespace LethalFlashlight.Components;
 
 public class FlashlightRework : NetworkBehaviour{
-
+    
+    
+    public float charge;
+    public bool flag;
+    
     private FlashlightItem parentFlashlight;
     private int type;
-    public bool flag;
-
     private float targetTimer;
     private float timer;
     
     private void Start() {
         this.parentFlashlight = this.gameObject.GetComponent<FlashlightItem>();
+        this.charge = this.parentFlashlight.insertedBattery.charge;
         this.type = this.parentFlashlight.flashlightTypeID;
         this.flag = false;
 
@@ -31,16 +34,15 @@ public class FlashlightRework : NetworkBehaviour{
         if ((Object) this.parentFlashlight == (Object) null) return;
         
         if (this.parentFlashlight.isBeingUsed) {
-            Battery targetBattery = this.parentFlashlight.usingPlayerHelmetLight
-                ? this.parentFlashlight.playerHeldBy.pocketedFlashlight.insertedBattery
-                : this.parentFlashlight.insertedBattery;
+            Battery targetBattery = this.parentFlashlight.insertedBattery;
+            
+            float targetCharge = targetBattery.charge;
 
             if (!this.parentFlashlight.IsOwner) {
-                targetBattery.charge -= Time.deltaTime / this.parentFlashlight.itemProperties.batteryUsage;
-                if (targetBattery.charge < 0) {
-                    return;
-                }
+                targetCharge = this.charge;
+                this.charge -=  Time.deltaTime / this.parentFlashlight.itemProperties.batteryUsage;
             } else {
+                this.charge = targetCharge;
                 this.timer += Time.deltaTime;
                 if (this.timer > this.targetTimer) {
                     Plugin.mls.LogInfo("Flicker timer reached, Checking...");
@@ -55,7 +57,7 @@ public class FlashlightRework : NetworkBehaviour{
                           Plugin.mls.LogInfo("Flicker chance not reached, Skipping...");  
                         }
                     } else {
-                        if (targetBattery.charge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
+                        if (targetCharge <= Plugin.FLASHLIGHT_THRESHOLD[this.type]) {
                             if (Random.Range(0f, 1f) < Plugin.FLICKER_CHANCE) {
                                 Plugin.mls.LogInfo("Flicker chance reached, Flickering...");
                                 this.StartCoroutine(SyncFlicking());
@@ -68,12 +70,12 @@ public class FlashlightRework : NetworkBehaviour{
                 }
             }
             
-            float batteryPercentage = targetBattery.charge > 1 ? 1: Mathf.Lerp(0.0f, 1.0f, targetBattery.charge);
+            float batteryPercentage = targetCharge > 1 ? 1: Mathf.Lerp(0.0f, 1.0f, targetCharge);
             float multiplier = batteryPercentage > Plugin.FLASHLIGHT_THRESHOLD[type] ? 1.0f : Mathf.Max(Mathf.Lerp(0.0f, 1.0f, batteryPercentage / Plugin.FLASHLIGHT_THRESHOLD[type]), Plugin.FLASHLIGHT_INTENSITY_MIN[type]);
 
             
             if (this.flag) {
-                multiplier = Random.Range(0.2f, 0.6f);
+                multiplier = Random.Range(0.1f, 0.3f);
             }
             
             if (this.parentFlashlight.isHeld) {
@@ -83,7 +85,7 @@ public class FlashlightRework : NetworkBehaviour{
                     this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 }
             } else {
-                if (targetBattery.charge > 0) {
+                if (targetCharge > 0) {
                     this.LightTweaker(this.parentFlashlight.flashlightBulb, Plugin.FLASHLIGHT_INTENSITY[type], multiplier);
                 } 
             }
@@ -119,5 +121,18 @@ public class FlashlightRework : NetworkBehaviour{
     private void UpdateStateClientRpc(bool state) {
         Plugin.mls.LogInfo("Client RPC: Received new flicker state");
         this.flag = state;
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdateChargeServerRpc(float charge) {
+        Plugin.mls.LogInfo("Server RPC: syncing charge - " + charge.ToString() + " -");
+        this.UpdateChargeClientRpc(charge);
+    }
+    
+    [ClientRpc]
+    private void UpdateChargeClientRpc(float charge) {
+        if(this.parentFlashlight.IsOwner) return;
+        Plugin.mls.LogInfo("Client RPC: Received new charge - " + charge.ToString() + " -");
+        this.charge = charge;
     }
 }

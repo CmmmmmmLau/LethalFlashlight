@@ -27,4 +27,14 @@ public class FlashlightItemPatch {
             component.IntensityUpdate();
         }
     }
+
+    [HarmonyPatch("ItemActivate")]
+    [HarmonyPatch("PocketItem")]
+    [HarmonyPatch("EquipItem")]
+    [HarmonyPrefix]
+    private static void UpdateCharge(FlashlightItem __instance) {
+        FlashlightRework component = __instance.gameObject.GetComponent<FlashlightRework>();
+        if ((Object) component == (Object) null) return;
+        component.UpdateChargeServerRpc(component.charge);
+    }
 }
