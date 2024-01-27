@@ -31,6 +31,7 @@ public class FlashlightItemPatch {
     [HarmonyPatch("ItemActivate")]
     [HarmonyPatch("PocketItem")]
     [HarmonyPatch("EquipItem")]
+    [HarmonyAfter("com.potatoepet.AdvancedCompany")]
     [HarmonyPrefix]
     private static void UpdateCharge(FlashlightItem __instance) {
         FlashlightRework component = __instance.gameObject.GetComponent<FlashlightRework>();
